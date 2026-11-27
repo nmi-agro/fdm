@@ -1,5 +1,9 @@
 import type { Geometry } from "geojson"
-import { enrichCurrentSoilDataWithNlv, NormNotApplicableError } from "@nmi-agro/fdm-calculator"
+import {
+  enrichCurrentSoilDataWithNlv,
+  isNormsYear,
+  NormNotApplicableError,
+} from "@nmi-agro/fdm-calculator"
 import {
   calculateDose,
   calculateNitrogenBalance,
@@ -695,8 +699,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       })()
 
       const normsResult = await (async (): Promise<AsyncTileResult<FieldDashboardNormSummary>> => {
-        if (calendar !== "2025" && calendar !== "2026") {
-          return buildUnavailableResult("Gebruiksruimte is alleen beschikbaar voor 2025 en 2026.")
+        if (!isNormsYear(calendar)) {
+          return buildUnavailableResult(
+            "Gebruiksruimte is alleen beschikbaar voor 2025 tot en met 2027.",
+          )
         }
 
         try {
@@ -704,7 +710,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
             fdm,
             principal_id: session.principal_id,
             b_id,
-            calendar: calendar as "2025" | "2026",
+            calendar,
           })
 
           return {

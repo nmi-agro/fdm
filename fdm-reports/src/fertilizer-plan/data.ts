@@ -5,12 +5,14 @@ import {
   calculateDose,
   calculateNormFillingsForFields,
   calculateNormsForFields,
+  createFunctionsForNorms,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
   getYearTimeframe,
+  isNormsYear,
   NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -67,9 +69,6 @@ function formatDate(date: Date | string | number | undefined): string {
 }
 
 const DEROGATION_GRANTED_NEEDED_FOR_YEARS = [2025]
-function isNormYear(year: string): year is "2025" | "2026" {
-  return year === "2025" || year === "2026"
-}
 
 /** Maximum number of nutrient advice requests to the NMI API at the same time. */
 const NUTRIENT_ADVICE_CONCURRENCY = 10
@@ -102,6 +101,22 @@ async function settleForFields<T_Input extends object, T_Output>(
 }
 
 /**
+ * Returns the norm input with the given grazing intention, so a plan uses one value for its norms
+ * and its fillings.
+ *
+ * @param normInput - The norm input of a field, as collected by the calculator.
+ * @param has_grazing_intention - The grazing intention of the farm for the plan year.
+ * @returns The norm input with that grazing intention, or `undefined` without a norm input.
+ */
+function withGrazingIntention(
+  normInput: { farm: object } | undefined,
+  has_grazing_intention: boolean,
+): object | undefined {
+  if (!normInput) return undefined
+  return { ...normInput, farm: { ...normInput.farm, has_grazing_intention } }
+}
+
+/**
  * Collects all data a fertilizer plan of a farm is based on: the farm, its fields with their
  * cultivations, fertilizer applications and soil data, the catalogues, and the derogation,
  * organic certification and grazing intention of the year.
@@ -119,6 +134,7 @@ export async function collectFertilizerPlanInput(
   year: number,
 ) {
   const timeframe = getCalendarYearTimeframe(year)
+  const normYear = String(year)
 
   const [
     farm,
@@ -131,6 +147,7 @@ export async function collectFertilizerPlanInput(
     derogationGranted,
     has_organic_certification,
     has_grazing_intention,
+    normInputsByField,
   ] = await Promise.all([
     getFarm(fdm, principal_id, b_id_farm),
     getFields(fdm, principal_id, b_id_farm, timeframe),
@@ -149,6 +166,16 @@ export async function collectFertilizerPlanInput(
       new Date(year, 4, 15), // May 15th of the specified year
     ),
     getGrazingIntention(fdm, principal_id, b_id_farm, year),
+    // The norm input as the calculator collects it for the norm year: with the cultivations of
+    // the previous year (for the previous-year rules) and the harvests (for single or multiple
+    // harvests). Only for years with norms.
+    isNormsYear(normYear)
+      ? createFunctionsForNorms("NL", normYear).collectInputForNormsForFarm(
+          fdm,
+          principal_id,
+          b_id_farm,
+        )
+      : undefined,
   ])
 
   // `config` is not part of this since it is purely stylistic and it doesn't affect the contemporary data
@@ -160,6 +187,10 @@ export async function collectFertilizerPlanInput(
       fertilizerApplications: fertilizerApplicationsMap.get(field.b_id) ?? [],
       cultivations: cultivationsMap.get(field.b_id) ?? [],
       currentSoilData: currentSoilDataMap.get(field.b_id) ?? [],
+      // The norm input of the field, or `undefined` for a year without norms. The grazing
+      // intention is the one read above, so the norms and the fillings of the plan use the same
+      // value even if it changes between the two reads.
+      normInput: withGrazingIntention(normInputsByField?.get(field.b_id), has_grazing_intention),
     })),
     fertilizersCatalogue: fertilizersCatalogue,
     cultivationsCatalogue: cultivationsCatalogue,
@@ -213,7 +244,6 @@ export async function computeFertilizerPlanData(
     fields,
     fertilizersCatalogue,
     cultivationsCatalogue,
-    derogationGranted,
     has_organic_certification,
     has_grazing_intention,
   }: FertilizerPlanInput,
@@ -223,12 +253,16 @@ export async function computeFertilizerPlanData(
 
   const timeframe = getCalendarYearTimeframe(year)
   const yearStr = String(year)
-  const normYear = isNormYear(yearStr) ? yearStr : undefined
+  const normYear = isNormsYear(yearStr) ? yearStr : undefined
 
   // The inputs of the cached calculations per field
   const prepareField = (fieldExtended: (typeof fields)[number]) => {
-    const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+    const { fertilizerApplications, cultivations, currentSoilData, normInput, ...field } =
+      fieldExtended
     const mainCultivation = getMainCultivation(cultivations, year)
+    if (normYear && !normInput) {
+      throw new Error(`No norm input was collected for field ${field.b_id}`)
+    }
     return {
       inputsError: undefined as unknown,
       fieldExtended,
@@ -237,22 +271,8 @@ export async function computeFertilizerPlanData(
       cultivations,
       currentSoilData,
       mainCultivation,
-      normInput: {
-        farm: {
-          ...((derogationGranted === null
-            ? {}
-            : { is_derogatie_bedrijf: derogationGranted }) as any),
-          has_grazing_intention: has_grazing_intention,
-        },
-        field: field,
-        cultivations: cultivations,
-        soilAnalysis: {
-          a_p_cc: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_cc")
-            ?.value as number | null,
-          a_p_al: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_al")
-            ?.value as number | null,
-        },
-      },
+      // Collected by the calculator for the norm year, see collectFertilizerPlanInput
+      normInput,
       adviceInput: mainCultivation
         ? {
             b_lu_catalogue: mainCultivation.b_lu_catalogue,
@@ -280,7 +300,13 @@ export async function computeFertilizerPlanData(
     try {
       return prepareField(fieldExtended)
     } catch (error) {
-      const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+      const {
+        fertilizerApplications,
+        cultivations,
+        currentSoilData,
+        normInput: _normInput,
+        ...field
+      } = fieldExtended
       return {
         inputsError: error,
         fieldExtended,

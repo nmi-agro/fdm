@@ -67,7 +67,7 @@ export const calculationTools: McpTool[] = [
       name: "get_fertilization_norms",
       title: "Get the fertilization norms",
       description:
-        "Returns the legal fertilization norms (gebruiksnormen) for a `year`: nitrogen, nitrogen from animal manure and phosphate, in kg/ha per field and in kg for the farm. Give `b_id_farm` for a farm or `b_id` for one field.",
+        "Returns the legal fertilization norms (gebruiksnormen) of one calendar year: nitrogen, nitrogen from animal manure and phosphate, in kg/ha per field and in kg for the farm. Give `b_id_farm` for a farm or `b_id` for one field. Always pass `year` with the year the user asks about (2025, 2026 or 2027; 2027 is provisional); ask the user when the year is unclear. Without `year` the norms are those of the current calendar year, which may not be the year the user means. The `year` in the result is the year of the norms: tell the user which year it is.",
     },
     [
       { scope: "farm", operation: getFarmFertilizationNorms, key: "b_id_farm" },

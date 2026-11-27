@@ -56,8 +56,11 @@ export function calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm
       // Check if the fertilizer is classified as a Renure product.
       if (rvoTypeProperties.p_type_renure) {
         const amount = new Decimal(application.p_app_amount ?? 0)
-        // Determine the nitrogen content, using specific values if available, otherwise fallback to default.
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // Determine the nitrogen content, using specific values if available, otherwise fallback to
+        // default. A nitrogen content of 0 means unknown, as in the nitrogen filling.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         // Calculate the norm filling for this application.
         normFilling = amount.times(p_n_rt).dividedBy(1000)
       }
