@@ -8,6 +8,7 @@ import {
   addAnimal,
   addAnimalsToHerd,
   createHerdWithAnimals,
+  getAnimalCategoriesForFarm,
   reassignHerdAnimals,
   removeAnimalsFromHerd,
   removeHerd,
@@ -18,6 +19,7 @@ import { dataWithSuccess } from "remix-toast"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { farmTodayKey } from "~/lib/grazing-dates"
+import { isGrazingCategory } from "~/lib/livestock-categories"
 import { serverNow } from "~/lib/server-now.server"
 
 /** The most animals that one change may add, as the forms allow. */
@@ -153,6 +155,10 @@ export async function handleLivestockEvent(
     const l_id_category = formText(formData, "l_id_category")
     if (!l_id_category) {
       throw data("Kies een diercategorie", { status: 400 })
+    }
+    const categories = await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)
+    if (!isGrazingCategory(categories, l_id_category)) {
+      throw data("Kies een diercategorie voor weidegang.", { status: 400 })
     }
     await createHerdWithAnimals(
       fdm,

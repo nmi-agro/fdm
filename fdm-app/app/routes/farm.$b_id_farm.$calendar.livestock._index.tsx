@@ -43,6 +43,7 @@ import { handleGrazingEvent, isGrazingIntent } from "~/lib/grazing-events.server
 import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
 import { getHerdCards } from "~/lib/herd-cards.server"
+import { filterGrazingCategories } from "~/lib/livestock-categories"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
 import { serverNow } from "~/lib/server-now.server"
 
@@ -119,7 +120,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendarYear,
       farmOptions,
       herds: herdCards,
-      categories,
+      categories: filterGrazingCategories(categories),
       defaultArrivalDay: herdArrivalDefaultKey(calendar, serverNow()),
       // Today in the Netherlands, the centre of the grazing window
       todayKey: matrix?.todayKey ?? farmTodayKey(serverNow()),

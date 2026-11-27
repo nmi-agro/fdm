@@ -94,6 +94,28 @@ test("add a fertilizer application to a field", async ({ page }) => {
   await expect(page.getByText("Bemesting is toegevoegd!")).toBeVisible()
 })
 
+test("add a herd of a grazing animal category", async ({ page }) => {
+  const farm = readSmokeFarm()
+  await page.goto(`/farm/${farm.farm}/${farm.year}/livestock/new`)
+  const category = page.getByLabel("Diercategorie *")
+  await category.click()
+
+  // The list shows labels with GVE per animal, and only categories of grazing animals
+  await expect(
+    page.getByRole("option", { name: "100 - Melk- en kalfkoeien (1 GVE/dier)" }),
+  ).toBeVisible()
+  await expect(page.getByRole("option", { name: /Fokzeugen/ })).toHaveCount(0)
+
+  // Typing filters; picking sets the category and a name for the herd
+  await category.fill("schapen")
+  await page.getByRole("option", { name: /^550 - Schapen/ }).click()
+  await expect(category).toHaveValue(/^550 - Schapen/)
+  await page.getByLabel("Naam van de koppel *").fill("E2E schapen")
+  await page.getByLabel("Aantal dieren *").fill("12")
+  await page.getByRole("button", { name: "Koppel aanmaken" }).click()
+  await expect(page.getByText(/Koppel E2E schapen aangemaakt/)).toBeVisible()
+})
+
 test("view the nitrogen balance and the nutrient advice", async ({ page }) => {
   const farm = readSmokeFarm()
   await page.goto(`/farm/${farm.farm}/${farm.year}/balance/nitrogen`)

@@ -29,7 +29,7 @@ In {{appName}} leg je je melkvee vast in koppels: groepen dieren die samen worde
 
 Heeft je bedrijf nog geen dieren, dan zie je in het menu **Melkvee toevoegen**. Daar maak je je eerste koppel aan:
 
-1. Kies de diercategorie, bijvoorbeeld melk- en kalfkoeien. {{appName}} vult een naam voor de koppel in, die je kunt aanpassen.
+1. Kies de diercategorie, bijvoorbeeld melk- en kalfkoeien. Voorlopig kun je alleen diercategorieën van graasdieren kiezen: rundvee, schapen, geiten, paarden en pony's. {{appName}} vult een naam voor de koppel in, die je kunt aanpassen.
 2. Vul het aantal dieren in; het veld begint leeg.
 3. Kies bij **Aanwezig sinds** de dag waarop de dieren op het bedrijf en in de koppel kwamen. Vooraf staat 1 januari van het gekozen jaar ingevuld, omdat die dag vaak niet bekend is; laat die staan als je de datum niet weet. Een dag in de toekomst kan niet.
 4. Klik op **Koppel aanmaken**.

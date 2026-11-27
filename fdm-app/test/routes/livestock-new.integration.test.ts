@@ -54,6 +54,22 @@ describe("action", () => {
     }
   })
 
+  it("refuses a category of a species that does not graze", async () => {
+    signInAs(owner.user)
+    const { status } = await runRoute(() =>
+      action(
+        actionArgs(path(owner.ids.farm), params(), {
+          l_id_category: "rvo_400",
+          l_herd_name: "Koppel varkens",
+          count: "1",
+        }),
+      ),
+    )
+    expect(status).toBe(400)
+    const herds = await getHerdsForFarm(fdm, owner.user.id, owner.ids.farm)
+    expect(herds.some((h) => h.l_herd_name === "Koppel varkens")).toBe(false)
+  })
+
   it("refuses an arrival day in the future", async () => {
     signInAs(owner.user)
     const { status } = await runRoute(() =>

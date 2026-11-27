@@ -1,5 +1,15 @@
 # Changelog fdm-app
 
+## 0.42.0
+
+### Minor Changes
+
+- [#995](https://github.com/nmi-agro/fdm/pull/995) [`ee0d090`](https://github.com/nmi-agro/fdm/commit/ee0d090c4d59719fbf67d92ad6d01eed9ac65617) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now herds can only have the grazing animal categories, so for example you can't add a herd of swine. Client requests to add herds of other categories are rejected with a 400.
+
+### Patch Changes
+
+- [#995](https://github.com/nmi-agro/fdm/pull/995) [`ee0d090`](https://github.com/nmi-agro/fdm/commit/ee0d090c4d59719fbf67d92ad6d01eed9ac65617) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the animal categories not being displayed properly on the herd category dropdown.
+
 ## 0.41.0
 
 ### Minor Changes
