@@ -1,23 +1,58 @@
 import { describe, expect, it } from "vitest"
-import { getCatalogueRvo } from "./catalogues/rvo"
-import { getAnimalCategoryTransitionSexes, getAnimalCategoryTransitions } from "./transitions"
+import type { CatalogueAnimalCategorySource } from "./d"
+import { getAnimalCategoriesCatalogue } from "./index"
+import {
+  getAnimalCategoryTransitionSexes,
+  getAnimalCategoryTransitions,
+  getAnimalCategoryTransitionsCatalogue,
+} from "./transitions"
+
+// Every catalogue source; a new source is added here as well
+const sources: CatalogueAnimalCategorySource[] = ["rvo"]
+
+describe("getAnimalCategoryTransitionsCatalogue", () => {
+  it.each(sources)(
+    "only moves %s categories to categories of the same catalogue and species, for sexes both allow",
+    async (source) => {
+      const catalogue = await getAnimalCategoriesCatalogue(source)
+      const byId = new Map(catalogue.map((category) => [category.l_id_category, category]))
+      const transitions = getAnimalCategoryTransitionsCatalogue(source)
+
+      for (const [fromId, moves] of Object.entries(transitions)) {
+        const from = byId.get(fromId)
+        expect(from, `${fromId} is not in catalogue ${source}`).toBeDefined()
+        for (const move of moves) {
+          expect(move.l_sex.length).toBeGreaterThan(0)
+          for (const toId of move.to) {
+            const to = byId.get(toId)
+            expect(to, `${fromId} -> ${toId}`).toBeDefined()
+            expect(toId).not.toBe(fromId)
+            expect(to?.l_specie).toBe(from?.l_specie)
+            for (const sex of move.l_sex) {
+              expect(from?.l_sex_options).toContain(sex)
+              expect(to?.l_sex_options).toContain(sex)
+            }
+          }
+        }
+      }
+    },
+  )
+
+  it("rejects an unsupported catalogue", () => {
+    expect(() =>
+      // @ts-expect-error Testing runtime validation.
+      getAnimalCategoryTransitionsCatalogue("unsupported"),
+    ).toThrowError("catalogue unsupported is not recognized")
+  })
+})
 
 describe("getAnimalCategoryTransitions", () => {
-  it("only moves to existing categories of the same species, for sexes both categories allow", async () => {
-    const catalogue = await getCatalogueRvo()
-    const byId = new Map(catalogue.map((category) => [category.l_id_category, category]))
-
-    for (const from of catalogue) {
-      for (const transition of getAnimalCategoryTransitions(from.l_id_category)) {
-        const to = byId.get(transition.l_id_category)
-        expect(to, `${from.l_id_category} -> ${transition.l_id_category}`).toBeDefined()
-        expect(to?.l_specie).toBe(from.l_specie)
-        expect(transition.l_id_category).not.toBe(from.l_id_category)
-        expect(transition.l_sex.length).toBeGreaterThan(0)
-        for (const sex of transition.l_sex) {
-          expect(from.l_sex_options).toContain(sex)
-          expect(to?.l_sex_options).toContain(sex)
-        }
+  it("combines the moves of every catalogue", async () => {
+    for (const source of sources) {
+      for (const [fromId, moves] of Object.entries(getAnimalCategoryTransitionsCatalogue(source))) {
+        expect(getAnimalCategoryTransitions(fromId).map((t) => t.l_id_category)).toEqual(
+          moves.flatMap((move) => move.to),
+        )
       }
     }
   })

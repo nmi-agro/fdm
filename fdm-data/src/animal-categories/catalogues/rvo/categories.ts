@@ -3,7 +3,7 @@ import type {
   AnimalCategorySpecies,
   CatalogueAnimalCategories,
   CatalogueAnimalCategory,
-} from "../d"
+} from "../../d"
 
 interface RvoAnimalCategory {
   l_id_category: string
