@@ -20,10 +20,12 @@ describe("getHerdMoveTargets", () => {
     // A young water buffalo bull can join the breeding bulls, a young cow the buffalo cows
     expect(ids(getHerdMoveTargets("rvo_992", ["male"], herds))).toEqual(["bulls"])
     expect(ids(getHerdMoveTargets("rvo_992", ["female"], herds))).toEqual(["buffalo"])
+    // A heifer calves and joins the cows, or is fattened with the red meat cattle
     expect(ids(getHerdMoveTargets("rvo_102", ["female"], herds))).toEqual([
       "dairy",
       "dairy-2",
       "heifers",
+      "beef",
     ])
   })
 
