@@ -254,7 +254,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       moveTargets: getHerdMoveTargets(
         animal.l_id_category ?? null,
         [animal.l_sex],
-        herds.filter((h) => h.l_id_herd !== animal.l_id_herd),
+        // An animal in no herd can join any herd of its own species
+        herds.filter((h) => h.l_id_herd !== animal.l_id_herd && h.l_specie === animal.l_specie),
       ).map((target) => ({
         ...target,
         l_herd_name: herds.find((h) => h.l_id_herd === target.l_id_herd)?.l_herd_name ?? "Koppel",

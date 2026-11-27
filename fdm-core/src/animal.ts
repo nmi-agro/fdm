@@ -1629,10 +1629,9 @@ export async function assignAnimalToHerd(
       }
 
       const categoryOf = herdCategoryLookup(tx)
-      const category = await categoryOf(target_l_id_herd)
-      assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
       // The animal moves on from its current herd, and for a move in the past also on into the
-      // herd it moved to later
+      // herd it moved to later. Checked before the category fit, so a move the animal's sex
+      // can't make is reported as such
       const l_sex = await assertAssignmentMoves(
         categoryOf,
         {
@@ -1644,6 +1643,7 @@ export async function assignAnimalToHerd(
         },
         animal.l_sex,
       )
+      assertAnimalMatchesCategory(await categoryOf(target_l_id_herd), animal.l_specie, l_sex)
       if (l_sex && l_sex !== animal.l_sex) {
         await tx
           .update(schema.animals)
@@ -1912,9 +1912,6 @@ export async function reassignHerdAnimals(
 
       const categoryOf = herdCategoryLookup(tx)
       const targetCategory = await categoryOf(target_l_id_herd)
-      for (const animal of activeAssignments) {
-        assertAnimalMatchesCategory(targetCategory, animal.l_specie, animal.l_sex)
-      }
 
       const animalIds = activeAssignments.map((row) => row.l_id_animal)
       if (animalIds.length === 0) {
@@ -1948,6 +1945,7 @@ export async function reassignHerdAnimals(
           { before: source_l_id_herd, herd: target_l_id_herd, after: after?.l_id_herd },
           animal.l_sex,
         )
+        assertAnimalMatchesCategory(targetCategory, animal.l_specie, l_sex)
         if (l_sex && l_sex !== animal.l_sex) {
           sexChanges.set(l_sex, [...(sexChanges.get(l_sex) ?? []), animal.l_id_animal])
         }
@@ -2140,25 +2138,39 @@ export async function updateAnimalAssigning(
         }
 
         const categoryOf = herdCategoryLookup(tx)
+        // The herds the animal is in before and after the assignment, when it starts at `start`
+        const others = assignments
+          .filter((row) => !isRecord(row) && !isEmpty(row))
+          .sort((a, b) => a.l_assigning_start.getTime() - b.l_assigning_start.getTime())
+        const around = (start: Date) => ({
+          before: others.filter((row) => row.l_assigning_start < start).at(-1)?.l_id_herd,
+          after: others.find((row) => row.l_assigning_start >= start)?.l_id_herd,
+        })
+        const was = around(l_assigning_start)
+        const corrected = around(nextStart)
+        let l_sex = animal[0].l_sex
+        // The corrected history must still be one the animal can live through: from the herd it
+        // is in before the corrected assignment, into its herd, and on into the herd after it. A
+        // date correction that keeps the herds around it is not checked again, so a history
+        // recorded before these rules can still get its dates fixed
+        if (
+          nextHerd !== l_id_herd ||
+          was.before !== corrected.before ||
+          was.after !== corrected.after
+        ) {
+          l_sex = await assertAssignmentMoves(
+            categoryOf,
+            { ...corrected, herd: nextHerd },
+            animal[0].l_sex,
+          )
+        }
         if (properties.l_id_herd) {
           assertAnimalMatchesCategory(
             await categoryOf(properties.l_id_herd),
             animal[0].l_specie,
-            animal[0].l_sex,
+            l_sex,
           )
         }
-        // The corrected history must still be one the animal can live through: from the herd it
-        // is in before the corrected assignment, into its herd, and on into the herd after it
-        const others = assignments
-          .filter((row) => !isRecord(row) && !isEmpty(row))
-          .sort((a, b) => a.l_assigning_start.getTime() - b.l_assigning_start.getTime())
-        const before = others.filter((row) => row.l_assigning_start < nextStart).at(-1)
-        const after = others.find((row) => row.l_assigning_start >= nextStart)
-        const l_sex = await assertAssignmentMoves(
-          categoryOf,
-          { before: before?.l_id_herd, herd: nextHerd, after: after?.l_id_herd },
-          animal[0].l_sex,
-        )
         if (l_sex && l_sex !== animal[0].l_sex) {
           await tx
             .update(schema.animals)

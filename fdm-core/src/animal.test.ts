@@ -1740,5 +1740,44 @@ describe("Animal Domain", () => {
       })
       expect((await getAnimal(fdm, principal_id, heifer)).l_id_herd).toBe(sucklerHerd)
     })
+
+    it("should report a move the animal's sex can't make as a move", async () => {
+      const bullCalf = await addAnimal(fdm, principal_id, b_id_farm, await herdOf("rvo_101"), {
+        l_sex: "male",
+      })
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, bullCalf, await herdOf("rvo_102")),
+      ).rejects.toMatchObject(cause("Animal of sex male cannot move from category rvo_101"))
+    })
+
+    it("should still correct the dates of a history recorded before these rules", async () => {
+      // A history the rules no longer allow (rvo_100 -> rvo_101), written directly
+      const calfHerd = await herdOf("rvo_101")
+      const cow = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      const moveDate = new Date("2025-06-01")
+      await fdm
+        .update(schema.animalAssigning)
+        .set({ l_assigning_end: moveDate })
+        .where(eq(schema.animalAssigning.l_id_animal, cow))
+      await fdm.insert(schema.animalAssigning).values({
+        l_id_animal: cow,
+        l_id_herd: calfHerd,
+        l_assigning_start: moveDate,
+        l_assigning_end: null,
+      })
+
+      // Moving the start of the later assignment keeps the herds around it, so it is allowed
+      const newDate = new Date("2025-07-01")
+      await updateAnimalAssigning(fdm, principal_id, cow, calfHerd, moveDate, {
+        l_assigning_start: newDate,
+      })
+      await updateAnimalAssigning(fdm, principal_id, cow, l_id_herd, new Date("2025-01-01"), {
+        l_assigning_end: newDate,
+      })
+      const history = await getAnimalAssignmentHistory(fdm, principal_id, cow)
+      expect(history.find((row) => row.l_id_herd === calfHerd)?.l_assigning_start).toEqual(newDate)
+    })
   })
 })
