@@ -1,9 +1,15 @@
 import type { Timeframe } from "@nmi-agro/fdm-core"
-import { getCensusForFarm, getGrazingCalendarForFarm, getHerdsForFarm } from "@nmi-agro/fdm-core"
+import {
+  getAnimalsForFarm,
+  getCensusForFarm,
+  getGrazingCalendarForFarm,
+  getHerdsForFarm,
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { fdm } from "~/lib/fdm.server"
 import { farmTodayKey } from "~/lib/grazing-dates"
+import { getHerdMoveTargets, type HerdMoveTarget } from "~/lib/herd-moves.server"
 import { serverNow } from "~/lib/server-now.server"
 
 /** What a herd card shows about the grazing of its herd today. */
@@ -68,6 +74,8 @@ export interface HerdCardData {
   /** Number of animals in the herd now. */
   count: number
   status: HerdGrazingStatus
+  /** The other herds that all animals of this herd can move to together. */
+  moveTargets: HerdMoveTarget[]
 }
 
 /**
@@ -85,11 +93,13 @@ export async function getHerdCards(
   b_id_farm: string,
   timeframe: Timeframe,
 ): Promise<HerdCardData[]> {
-  const [herds, census, grazings] = await Promise.all([
+  const [herds, census, grazings, animals] = await Promise.all([
     getHerdsForFarm(fdm, principal_id, b_id_farm),
     // The animals now, as fdm-core counts them when a count is changed
     getCensusForFarm(fdm, principal_id, b_id_farm),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
+    // The sex of each animal decides which herds its herd can move to
+    getAnimalsForFarm(fdm, principal_id, b_id_farm),
   ])
   const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
@@ -108,6 +118,11 @@ export async function getHerdCards(
       l_lsu: h.l_lsu ?? 1.0,
       count: censusMap.get(h.l_id_herd) ?? 0,
       status,
+      moveTargets: getHerdMoveTargets(
+        h.l_id_category,
+        animals.filter((a) => a.l_id_herd === h.l_id_herd).map((a) => a.l_sex),
+        herds.filter((other) => other.l_id_herd !== h.l_id_herd),
+      ),
     }
   })
 }

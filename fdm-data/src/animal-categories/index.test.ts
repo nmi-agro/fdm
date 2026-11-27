@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getCatalogueRvo } from "./catalogues/rvo"
+import { getCatalogueRvo } from "./catalogues/rvo/categories"
 import { getAnimalCategoriesCatalogue } from "./index"
 
 describe("getAnimalCategoriesCatalogue", () => {

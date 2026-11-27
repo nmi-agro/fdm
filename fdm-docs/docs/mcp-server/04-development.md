@@ -32,7 +32,7 @@ Copy `fdm-mcp/.env.example` to `fdm-mcp/.env` and set:
 | `BETTER_AUTH_URL`, `PUBLIC_FDM_MCP_URL` | `http://localhost:6174`                                                                                     |
 | `PUBLIC_FDM_NAME`                       | The name of your app, for example the one in fdm-app.                                                       |
 | `NMI_API_KEY`                           | Optional: needed for nutrient advice, indicators and measure options.                                       |
-| `PUBLIC_POSTHOG_KEY`                    | Leave empty: no analytics are sent.                                                                         |
+| `POSTHOG_PROJECT_TOKEN`                 | Leave empty: no analytics are sent.                                                                         |
 
 ```bash
 cd fdm-mcp
@@ -131,4 +131,4 @@ Build the image from the repository root and run it as its own service:
 docker build -f fdm-mcp/dockerfile -t fdm-mcp .
 ```
 
-It needs the same database and `BETTER_AUTH_SECRET` as the web app and REST API, plus `PUBLIC_FDM_NAME`, `PUBLIC_FDM_MCP_URL` and, optionally, `FDM_MCP_ALLOWED_ORIGINS`, `NMI_API_KEY`, `PUBLIC_POSTHOG_KEY` and `PUBLIC_SENTRY_DSN`. See `fdm-mcp/.env.example`. Responses are plain JSON, so no session affinity or streaming support is needed.
+It needs the same database and `BETTER_AUTH_SECRET` as the web app and REST API, plus `PUBLIC_FDM_NAME`, `PUBLIC_FDM_MCP_URL` and, optionally, `FDM_MCP_ALLOWED_ORIGINS`, `NMI_API_KEY`, `POSTHOG_PROJECT_TOKEN` (with `POSTHOG_HOST`, which defaults to `https://eu.i.posthog.com`) and `PUBLIC_SENTRY_DSN`. The older names `PUBLIC_POSTHOG_KEY` and `PUBLIC_POSTHOG_HOST` still work. See `fdm-mcp/.env.example`. Responses are plain JSON, so no session affinity or streaming support is needed.

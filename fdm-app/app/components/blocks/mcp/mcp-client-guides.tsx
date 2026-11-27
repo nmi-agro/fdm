@@ -118,7 +118,7 @@ export function McpClientGuides({ guides }: { guides: McpClientGuidesData }) {
             in de voorbeelden door je sleutel, zonder de punthaken.
           </p>
           <Tabs defaultValue={guides.developer[0]?.id}>
-            <TabsList className="flex-wrap justify-start group-data-horizontal/tabs:h-auto">
+            <TabsList className="flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto">
               {guides.developer.map((guide) => (
                 <TabsTrigger key={guide.id} value={guide.id}>
                   {guide.label}

@@ -1,5 +1,14 @@
 # @nmi-agro/fdm-mcp
 
+## 0.1.2
+
+### Patch Changes
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`6eb7c85`](https://github.com/nmi-agro/fdm/commit/6eb7c8545ae9573ad0a6124797e7c1caef47e972) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix the PostHog MCP analytics. The server reads `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST`, with `PUBLIC_POSTHOG_KEY` and `PUBLIC_POSTHOG_HOST` still accepted as fallbacks (an empty value counts as unset, and `docker-compose.yml` passes both names to the container); without a host the analytics go to the EU region (`https://eu.i.posthog.com`). `@posthog/mcp` and `posthog-node` are pinned to exact versions (1.6.0 and 6.0.4), so tool calls keep reporting the model and conversation that an assistant passes with them.
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-api@0.5.1
+
 ## 0.1.1
 
 ### Patch Changes

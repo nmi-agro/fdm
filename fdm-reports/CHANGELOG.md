@@ -1,5 +1,13 @@
 # @nmi-agro/fdm-reports
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-calculator@0.22.1
+
 ## 0.1.1
 
 ### Patch Changes
