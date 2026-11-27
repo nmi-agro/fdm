@@ -10,7 +10,8 @@
  *                              omit to allow only localhost. Clients without an Origin header
  *                              (desktop apps, CLIs, servers) are always allowed.
  *   NMI_API_KEY              — NMI API key for indicators, measure options and nutrient advice
- *   PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST — PostHog MCP analytics; omit the key to disable it
+ *   POSTHOG_PROJECT_TOKEN, POSTHOG_HOST — PostHog MCP analytics; omit the token to disable it
+ *   PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST — legacy aliases for the PostHog variables
  *   PUBLIC_SENTRY_DSN        — Sentry DSN; omit to disable error reporting
  *   SENTRY_RELEASE           — release tag for Sentry and PostHog (defaults to npm_package_version)
  *   PORT                     — HTTP port (default: 6174)
@@ -45,13 +46,11 @@ const allowedOrigins = (process.env.FDM_MCP_ALLOWED_ORIGINS ?? "")
   .map((origin) => origin.trim())
   .filter(Boolean)
 
-const posthog = process.env.PUBLIC_POSTHOG_KEY
-  ? new PostHog(process.env.PUBLIC_POSTHOG_KEY, {
-      host: process.env.PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
-    })
-  : undefined
+const posthogToken = process.env.POSTHOG_PROJECT_TOKEN ?? process.env.PUBLIC_POSTHOG_KEY
+const posthogHost = process.env.POSTHOG_HOST ?? process.env.PUBLIC_POSTHOG_HOST
+const posthog = posthogToken ? new PostHog(posthogToken, { host: posthogHost }) : undefined
 if (!posthog) {
-  console.warn("[fdm-mcp] PUBLIC_POSTHOG_KEY is not set — MCP analytics are disabled")
+  console.warn("[fdm-mcp] POSTHOG_PROJECT_TOKEN is not set — MCP analytics are disabled")
 }
 
 // The name assistants show for this server, for example "MINAS2". An empty value counts as unset.
