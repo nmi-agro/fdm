@@ -15,6 +15,8 @@ Before making changes, read `AGENTS.md` and the relevant skills under `.claude/s
 
 ## 2. Apply safe updates directly
 
+Only consider versions that satisfy the repository's release-age window (`minimumReleaseAge` in `pnpm-workspace.yaml`, currently 1440 minutes). Ignore anything newer: do not bump to it, do not list it as an update, do not read or cite its changelog, and do not work around the window (no `--ignore-minimum-release-age`, no shortening of `minimumReleaseAge`, no new `minimumReleaseAgeExclude` entries). Packages already in `minimumReleaseAgeExclude` follow that list. Prefer `pnpm update` over hand-picking versions, because pnpm applies the window itself; if `pnpm outdated` shows a newer version than pnpm will install, treat the installed one as the target.
+
 - For all patch/minor bumps: update the version in `pnpm-workspace.yaml`'s `catalog` (for catalog-managed deps) or the package's own `package.json` (for deps not in the catalog), then run `pnpm install`.
 - These should not require code changes beyond the version bump itself, but still run the validation in step 4 and revert/pin back any bump that breaks the build or tests instead of leaving the repo broken.
 
@@ -33,7 +35,7 @@ For each **major** version bump:
 
 ## 3b. Read the changelogs of minor/patch bumps and adopt small wins
 
-For every patch/minor bump of a dependency that `fdm` uses directly (skip purely transitive or dev-tooling-only bumps unless something notable shows up), read its changelog between the current and the new version. Look in the installed package first (`node_modules/<pkg>/CHANGELOG.md`), then in the dependency's own GitHub repository (`CHANGELOG.md`, in-repo release notes, `.changeset/`), using the same access rules as in step 3. Do not guess when a changelog is unreachable: say in the PR which ones you could not read.
+For every patch/minor bump of a dependency that `fdm` uses directly (skip purely transitive or dev-tooling-only bumps unless something notable shows up), read its changelog between the current and the new version you actually install (not newer, still-maturing releases). Look in the installed package first (`node_modules/<pkg>/CHANGELOG.md`), then in the dependency's own GitHub repository (`CHANGELOG.md`, in-repo release notes, `.changeset/`), using the same access rules as in step 3. Do not guess when a changelog is unreachable: say in the PR which ones you could not read.
 
 Look for new, non-breaking features or fixes that could improve `fdm` (new APIs, performance or reliability improvements, deprecations that touch code in this repo). Then:
 
