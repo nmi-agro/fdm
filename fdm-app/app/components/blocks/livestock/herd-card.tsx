@@ -439,7 +439,7 @@ export function HerdCard({
                     dezelfde diersoort.
                   </FieldDescription>
                 ) : sexAfterMove ? (
-                  <FieldDescription key="sex-after">
+                  <FieldDescription key={`sex-after-${sexAfterMove}`}>
                     Dieren met een onbekend geslacht worden {sexLabel(sexAfterMove)}.
                   </FieldDescription>
                 ) : null}

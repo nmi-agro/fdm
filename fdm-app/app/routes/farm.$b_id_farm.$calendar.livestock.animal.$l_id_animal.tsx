@@ -843,7 +843,7 @@ export default function AnimalDetailPage() {
                               van dezelfde diersoort.
                             </FieldDescription>
                           ) : sexAfterMove ? (
-                            <FieldDescription key="sex-after">
+                            <FieldDescription key={`sex-after-${sexAfterMove}`}>
                               Het geslacht van dit dier wordt {sexLabel(sexAfterMove)}.
                             </FieldDescription>
                           ) : null}

@@ -1961,6 +1961,9 @@ export async function reassignHerdAnimals(
           and(
             eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
             inArray(schema.animalAssigning.l_id_animal, animalIds),
+            // Only the assignments selected above; a later return of the animal to this herd keeps
+            // its own dates
+            lte(schema.animalAssigning.l_assigning_start, l_reassign_date),
             or(
               isNull(schema.animalAssigning.l_assigning_end),
               gt(schema.animalAssigning.l_assigning_end, l_reassign_date),
@@ -2155,15 +2158,21 @@ export async function updateAnimalAssigning(
         // is in before the corrected assignment, into its herd, and on into the herd after it. A
         // date correction that keeps the herds around it is not checked again, so a history
         // recorded before these rules can still get its dates fixed
-        if (
-          nextHerd !== l_id_herd ||
-          was.before !== corrected.before ||
-          was.after !== corrected.after
-        ) {
+        const leavesPosition = was.before !== corrected.before || was.after !== corrected.after
+        if (nextHerd !== l_id_herd || leavesPosition) {
           l_sex = await assertAssignmentMoves(
             categoryOf,
             { ...corrected, herd: nextHerd },
             animal[0].l_sex,
+          )
+        }
+        // An assignment that moves to another point in time joins the herds it was between, so
+        // the animal must also be able to move from the one straight into the other
+        if (leavesPosition && was.before && was.after) {
+          l_sex = assertAnimalCategoryMove(
+            (await categoryOf(was.before)).l_id_category,
+            await categoryOf(was.after),
+            l_sex,
           )
         }
         if (properties.l_id_herd) {

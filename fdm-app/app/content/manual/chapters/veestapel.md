@@ -75,7 +75,7 @@ Klik op een dier om de details te openen. Daar:
 
 ### Een dier verplaatsen {#verplaatsen}
 
-Een dier volgt zijn levensloop. Je verplaatst het naar een andere koppel van dezelfde diercategorie, of naar de volgende levensfase van dezelfde diersoort: jongvee wordt een pink, en een pink gaat na het afkalven naar de melkkoeien. Terug naar een jongere leeftijdsgroep of naar een andere diersoort kan niet; een waterbuffel wordt dus nooit een melkkoe. Soms hangt de volgende fase af van het geslacht: een vaarskalf gaat naar het vrouwelijk jongvee, een stierkalf naar de fokstieren.
+Een dier volgt zijn levensloop. Je verplaatst het naar een andere koppel van dezelfde diercategorie, of naar de volgende levensfase van dezelfde diersoort: jongvee wordt een pink, en een pink gaat na het afkalven naar de melkkoeien. Terug naar een jongere leeftijdsgroep of naar een andere diersoort kan niet; een waterbuffel wordt dus nooit een melkkoe. Sommige diercategorieën tellen ook de jongen mee, zoals de pasgeboren lammeren bij de melkgeiten of de kalveren bij de hinden van het edelhert. Die jongen kun je naar hun eigen categorie verplaatsen, ook al is dat een jongere leeftijdsgroep dan die van de moederdieren. Soms hangt de volgende fase af van het geslacht: een vaarskalf gaat naar het vrouwelijk jongvee, een stierkalf naar de fokstieren.
 
 Bij **Doelkoppel** zie je daarom alleen de koppels waar het dier naartoe kan. Is het geslacht nog onbekend en kan maar één geslacht naar de gekozen koppel, dan krijgt het dier dat geslacht; dat staat onder de keuze. Hetzelfde geldt voor **Dieren verplaatsen naar andere koppel** op een koppelkaart: daar zie je alleen de koppels waar alle dieren van de koppel naartoe kunnen.
 

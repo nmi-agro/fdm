@@ -1741,6 +1741,71 @@ describe("Animal Domain", () => {
       expect((await getAnimal(fdm, principal_id, heifer)).l_id_herd).toBe(sucklerHerd)
     })
 
+    it("should check the herds a corrected assignment leaves behind", async () => {
+      const calfHerd = await herdOf("rvo_101")
+      const calf = await addAnimal(fdm, principal_id, b_id_farm, calfHerd, {
+        l_sex: "female",
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      const heiferHerd = await herdOf("rvo_102")
+      await assignAnimalToHerd(fdm, principal_id, calf, heiferHerd, new Date("2025-02-01"))
+      await assignAnimalToHerd(fdm, principal_id, calf, l_id_herd, new Date("2025-04-01"))
+      await updateAnimalAssigning(fdm, principal_id, calf, l_id_herd, new Date("2025-04-01"), {
+        l_assigning_end: new Date("2025-05-01"),
+      })
+
+      // Moving the heifer assignment after the dairy one would join 101 straight to 100
+      await expect(
+        updateAnimalAssigning(fdm, principal_id, calf, heiferHerd, new Date("2025-02-01"), {
+          l_id_herd: await herdOf("rvo_100"),
+          l_assigning_start: new Date("2025-06-01"),
+          l_assigning_end: new Date("2025-07-01"),
+        }),
+      ).rejects.toMatchObject(cause("cannot move from category rvo_101 to category rvo_100"))
+    })
+
+    it("should check a move in the past against the later move only where that step fails", async () => {
+      const heiferHerd = await herdOf("rvo_102")
+      const otherHeiferHerd = await herdOf("rvo_102")
+      const heifer = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
+        l_sex: "female",
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      await assignAnimalToHerd(fdm, principal_id, heifer, otherHeiferHerd, new Date("2025-06-01"))
+
+      // 102 -> 100 is allowed, but 100 -> 102 into the later herd is not
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, heifer, l_id_herd, new Date("2025-03-01")),
+      ).rejects.toMatchObject(cause("cannot move from category rvo_100 to category rvo_102"))
+      const history = await getAnimalAssignmentHistory(fdm, principal_id, heifer)
+      expect(history.map((row) => row.l_id_herd).sort()).toEqual(
+        [heiferHerd, otherHeiferHerd].sort(),
+      )
+    })
+
+    it("should keep a later return to the source herd when its animals move", async () => {
+      const sucklerHerd = await herdOf("rvo_120")
+      const targetHerd = await herdOf("rvo_100")
+      const cow = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      await assignAnimalToHerd(fdm, principal_id, cow, sucklerHerd, new Date("2025-04-01"))
+      await assignAnimalToHerd(fdm, principal_id, cow, l_id_herd, new Date("2025-09-01"))
+
+      await reassignHerdAnimals(fdm, principal_id, l_id_herd, targetHerd, new Date("2025-03-01"))
+
+      const history = await getAnimalAssignmentHistory(fdm, principal_id, cow)
+      const ret = history.find(
+        (row) =>
+          row.l_id_herd === l_id_herd &&
+          new Date(row.l_assigning_start).getTime() === new Date("2025-09-01").getTime(),
+      )
+      expect(ret?.l_assigning_end).toBeNull()
+      expect(history.find((row) => row.l_id_herd === targetHerd)?.l_assigning_end).toEqual(
+        new Date("2025-04-01"),
+      )
+    })
+
     it("should report a move the animal's sex can't make as a move", async () => {
       const bullCalf = await addAnimal(fdm, principal_id, b_id_farm, await herdOf("rvo_101"), {
         l_sex: "male",
