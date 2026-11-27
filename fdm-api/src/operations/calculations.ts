@@ -574,7 +574,7 @@ export const NormsYearQuerySchema = z.object({
     .enum(NORMS_YEARS)
     .optional()
     .describe(
-      "Calendar year. Defaults to the current calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: they use the 2026 rules until the official 2027 tables are published.",
+      "Calendar year of the norms. Optional: without it the current calendar year is used, and the `year` in the response says which year that is. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: they use the 2026 rules until the official 2027 tables are published.",
     ),
 })
 
